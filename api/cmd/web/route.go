@@ -2,12 +2,12 @@ package main
 
 import "net/http"
 
-func (app *app) routes() *http.ServeMux {
+func (app *app) routes() http.Handler {
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{short_code}", app.GetUrl)
 	mux.HandleFunc("POST /shorten", app.HandleShorten)
 
-	return mux
+	return app.enableCORS(mux)
 }

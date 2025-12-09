@@ -25,31 +25,41 @@ func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
-
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	//  validation Required
-	// ------------------
-	actual_url := r.FormValue("url")
-	if actual_url == "" {
+	actualURL := r.FormValue("url")
+	if actualURL == "" {
 		http.Error(w, "URL parameter is required", http.StatusBadRequest)
 		return
 	}
 
-	short_code := app.generateShortCode(actual_url)
+	shortCode := app.generateShortCode(actualURL)
 
-	err = app.urlModel.Post(short_code, actual_url, 7)
-	if err != nil {
+	_, err := app.urlModel.Get(shortCode)
+
+	if err == nil {
+		shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"short_url": "%s", "short_code": "%s"}`, shortURL, shortCode)
+		return
+	}
+
+	if err != model.ErrRowNotFound {
 		app.logger.Error(err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	shortURL := fmt.Sprintf("http://localhost:8080/%s", short_code)
+	if err := app.urlModel.Post(shortCode, actualURL, 7); err != nil {
+		app.logger.Error(err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"short_url": "%s", "short_code": "%s"}`, shortURL, short_code)
+	fmt.Fprintf(w, `{"short_url": "%s", "short_code": "%s"}`, shortURL, shortCode)
 }

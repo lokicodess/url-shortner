@@ -16,5 +16,9 @@ func (app *app) generateShortCode(url string) string {
 		}
 		return -1
 	}, encoded)
+	const codeLen = 7
+	if len(cleaned) > codeLen {
+		return cleaned[:codeLen]
+	}
 	return cleaned
 }
