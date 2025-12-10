@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: urlshortener-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: prod
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: urlshortener-api
+    command: >
+      ./app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=127.0.0.1
+      - DB_USER=root
+      - DB_PASS=password
+      - DB_NAME=prod
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: urlshortener-web
+    ports:
+      - "3000:80" # Nginx inside container serves frontend on 80
+    depends_on:
+      - api
+
+volumes:
+  mysql-data:
