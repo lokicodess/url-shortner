@@ -3,10 +3,14 @@ package main
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"encoding/json"
+	"net/http"
 	"strings"
+
+	"github.com/lokicodess/url-shortner/internal/data"
 )
 
-func (app *app) generateShortCode(url string) string {
+func (app app) generateShortCode(url string) string {
 	hash := md5.Sum([]byte(url))
 	encoded := base64.URLEncoding.EncodeToString(hash[:])
 
@@ -21,4 +25,18 @@ func (app *app) generateShortCode(url string) string {
 		return cleaned[:codeLen]
 	}
 	return cleaned
+}
+
+func (app app) writeJSON(w http.ResponseWriter, status int, data data.Envelope, headers http.Header) error {
+	js, err := json.MarshalIndent(data, "", "\t")
+	if err != nil {
+		return err
+	}
+	for key, value := range headers {
+		w.Header()[key] = value
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(js)
+	return nil
 }

@@ -5,20 +5,35 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/lokicodess/url-shortner/internal/data"
 	"github.com/lokicodess/url-shortner/internal/model"
 )
 
+func (app app) healthCheck(w http.ResponseWriter, r *http.Request) {
+	env := data.Envelope{
+		"status": "available",
+		"system_info": map[string]string{
+			"enviornment": app.config.env,
+			"version":     version,
+		},
+	}
+	err := app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
 	short_code := r.PathValue("short_code")
-	// validation Required
-	// ------------------
+
 	actual_url, err := app.urlModel.Get(short_code)
+
 	if err != nil {
 		if errors.Is(err, model.ErrRowNotFound) {
-			http.NotFound(w, r)
+			app.notFoundResponse(w, r)
 			return
 		}
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 	http.Redirect(w, r, actual_url, http.StatusPermanentRedirect)
@@ -26,40 +41,46 @@ func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
 
 func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
 	actualURL := r.FormValue("url")
-	if actualURL == "" {
-		http.Error(w, "URL parameter is required", http.StatusBadRequest)
-		return
-	}
+
+	// validation need to be done
 
 	shortCode := app.generateShortCode(actualURL)
 
 	_, err := app.urlModel.Get(shortCode)
 
+	// kinda like local caching
 	if err == nil {
 		shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"short_url": "%s", "short_code": "%s"}`, shortURL, shortCode)
-		return
+		obj := data.URL{
+			ShortUrl:  shortURL,
+			ShortCode: shortCode,
+		}
+		app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
 	}
 
 	if err != model.ErrRowNotFound {
-		app.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		app.notFoundResponse(w, r)
 	}
 
 	if err := app.urlModel.Post(shortCode, actualURL, 7); err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		app.serverErrorResponse(w, r, err)
 	}
 
 	shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"short_url": "%s", "short_code": "%s"}`, shortURL, shortCode)
+
+	obj := data.URL{
+		ShortUrl:  shortURL,
+		ShortCode: shortCode,
+	}
+
+	err = app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
