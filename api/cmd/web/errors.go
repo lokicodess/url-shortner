@@ -7,6 +7,15 @@ import (
 	"github.com/lokicodess/url-shortner/internal/data"
 )
 
+func (app *app) failedValidationResponse(w http.ResponseWriter, errors map[string]string) {
+	envelope := data.Envelope{
+		"error":   "validation_failed",
+		"message": "Input validation failed",
+		"fields":  errors,
+	}
+	app.writeJSON(w, 422, envelope, nil)
+}
+
 func (app app) logError(r *http.Request, err error) {
 	method := r.Method
 	uri := r.URL.RequestURI()
