@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/lokicodess/url-shortner/internal/data"
 	"github.com/lokicodess/url-shortner/internal/model"
+	"github.com/lokicodess/url-shortner/internal/validator"
 )
 
 func (app app) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -24,10 +26,14 @@ func (app app) healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
-	short_code := r.PathValue("short_code")
+	shortCode := r.PathValue("short_code")
 
-	actual_url, err := app.urlModel.Get(short_code)
+	if !validator.Matches(shortCode, validator.ShortCodeRX) {
+		app.notFoundResponse(w, r)
+		return
+	}
 
+	actualURL, err := app.urlModel.Get(shortCode)
 	if err != nil {
 		if errors.Is(err, model.ErrRowNotFound) {
 			app.notFoundResponse(w, r)
@@ -36,24 +42,42 @@ func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	http.Redirect(w, r, actual_url, http.StatusPermanentRedirect)
+
+	if !validator.Matches(actualURL, validator.UrlRX) {
+		app.serverErrorResponse(w, r, errors.New("invalid stored url"))
+		return
+	}
+
+	http.Redirect(w, r, actualURL, http.StatusPermanentRedirect)
 }
 
 func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	// limit size to prevent abuse
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+
+	err := r.ParseMultipartForm(1024)
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	actualURL := r.FormValue("url")
+	actualURL := strings.TrimSpace(r.FormValue("url"))
 
-	// validation need to be done
+	// --------------------------
+	// VALIDATION
+	// --------------------------
+	v := validator.New()
+	v.CheckURL("url", actualURL)
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
+		return
+	}
 
 	shortCode := app.generateShortCode(actualURL)
 
-	_, err := app.urlModel.Get(shortCode)
-
-	// kinda like local caching
+	// If short code already exists → return the existing one
+	_, err = app.urlModel.Get(shortCode)
 	if err == nil {
 		shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
 		obj := data.URL{
@@ -61,26 +85,24 @@ func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 			ShortCode: shortCode,
 		}
 		app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
+		return
 	}
 
 	if err != model.ErrRowNotFound {
-		app.notFoundResponse(w, r)
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 
 	if err := app.urlModel.Post(shortCode, actualURL, 7); err != nil {
 		app.serverErrorResponse(w, r, err)
+		return
 	}
 
 	shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
-
 	obj := data.URL{
 		ShortUrl:  shortURL,
 		ShortCode: shortCode,
 	}
 
-	err = app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
-
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+	app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
 }
