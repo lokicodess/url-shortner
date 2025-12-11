@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -18,6 +19,13 @@ const version = "1.0.0"
 type config struct {
 	port int
 	env  string
+	db   struct {
+		dsn          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  time.Duration
+		maxLifeTime  time.Duration
+	}
 }
 
 type app struct {
@@ -33,19 +41,24 @@ func main() {
 
 	flag.IntVar(&cfg.port, "port", 8080, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	dsn := flag.String("dsn", "root:password@tcp(127.0.0.1:3306)/prod?parseTime=true", "Data Soure Name")
+
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "root:password@tcp(127.0.0.1:3306)/prod?parseTime=true", "MySQL DSN")
+	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 10, "MySQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 5, "MySQL max idle connections")
+	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 5*time.Minute, "MySQL max idle connections time")
+	flag.DurationVar(&cfg.db.maxLifeTime, "db-max-life-time", 1*time.Hour, "MySQL max connections lifetime")
 
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	db, err := openDB(*dsn)
+	db, err := openDB(cfg)
 
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
-	logger.Info("starting db", "addr", 3306)
+	logger.Info("database connection pool established")
 
 	defer db.Close()
 	app := &app{
@@ -74,12 +87,19 @@ func main() {
 	}
 }
 
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", dsn)
+func openDB(cfg config) (*sql.DB, error) {
+	db, err := sql.Open("mysql", cfg.db.dsn)
 	if err != nil {
 		return nil, err
 	}
-	err = db.Ping()
+	db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	db.SetConnMaxIdleTime(cfg.db.maxIdleTime)
+	db.SetConnMaxLifetime(cfg.db.maxLifeTime)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
 	if err != nil {
 		db.Close()
 		return nil, err
