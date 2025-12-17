@@ -10,5 +10,5 @@ func (app *app) routes() http.Handler {
 	mux.HandleFunc("GET /{short_code}", app.GetUrl)
 	mux.HandleFunc("POST /shorten", app.HandleShorten)
 
-	return app.enableCORS(app.panicRecovery(mux))
+	return app.enableCORS(app.panicRecovery(app.rateLimit(mux)))
 }

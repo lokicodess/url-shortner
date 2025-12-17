@@ -26,6 +26,11 @@ type config struct {
 		maxIdleTime  time.Duration
 		maxLifeTime  time.Duration
 	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
 type app struct {
@@ -47,6 +52,10 @@ func main() {
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 5, "MySQL max idle connections")
 	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 5*time.Minute, "MySQL max idle connections time")
 	flag.DurationVar(&cfg.db.maxLifeTime, "db-max-life-time", 1*time.Hour, "MySQL max connections lifetime")
+
+	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
+	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))

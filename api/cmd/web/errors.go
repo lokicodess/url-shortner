@@ -7,13 +7,18 @@ import (
 	"github.com/lokicodess/url-shortner/internal/data"
 )
 
-func (app *app) failedValidationResponse(w http.ResponseWriter, errors map[string]string) {
+func (app app) failedValidationResponse(w http.ResponseWriter, errors map[string]string) {
 	envelope := data.Envelope{
 		"error":   "validation_failed",
 		"message": "Input validation failed",
 		"fields":  errors,
 	}
 	app.writeJSON(w, 422, envelope, nil)
+}
+
+func (app app) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
 }
 
 func (app app) logError(r *http.Request, err error) {
