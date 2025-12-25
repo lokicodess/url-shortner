@@ -1,27 +1,21 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
 
+ENV CGO_ENABLED=0
+
 WORKDIR /app
 
-# Copy go.mod and go.sum first
 COPY go.mod go.sum ./
-RUN go mod download
 
-# Copy all source code
+RUN go mod tidy && go mod download
+
 COPY . .
-
-# Build binary from cmd/ folder
 
 RUN go build -o /app/app ./cmd/web/
 
-# Runtime stage
-FROM alpine:3.18
+# Runner Stage 
+FROM alpine:3.20
 WORKDIR /app
-RUN apk add --no-cache ca-certificates
-
-# Copy binary
 COPY --from=builder /app/app .
-
 EXPOSE 8080
-
 CMD ["./app"]
