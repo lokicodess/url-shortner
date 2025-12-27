@@ -60,10 +60,15 @@ metadata:
   namespace: api
   annotations:
     kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+
+    # Use HTTPS entrypoint (443)
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
 spec:
   rules:
-    - http:
+    - host: clck.dev
+      http:
         paths:
           - path: /
             pathType: Prefix
