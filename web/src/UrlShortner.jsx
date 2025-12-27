@@ -22,15 +22,7 @@ export default function UrlShortener() {
       const formData = new FormData();
       formData.append("url", longUrl);
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-      const response = await fetch("http://localhost:8080/shorten", {
-=======
       const response = await fetch("/api/shorten", {
->>>>>>> Stashed changes
-=======
-      const response = await fetch("/api/shorten", {
->>>>>>> Stashed changes
         method: "POST",
         body: formData, // <-- multipart form data automatically
       });
