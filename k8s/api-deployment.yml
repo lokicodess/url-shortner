@@ -20,6 +20,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http # Added name for ServiceMonitor
           command: ["./app"]
           args:
             - "--port=$(APP_PORT)"
@@ -59,7 +60,6 @@ spec:
                 secretKeyRef:
                   name: rds-secret
                   key: DATABASE
-
             # Application Configuration (from ConfigMap)
             - name: APP_PORT
               valueFrom:
