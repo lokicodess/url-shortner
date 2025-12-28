@@ -79,7 +79,7 @@ func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 	// If short code already exists → return the existing one
 	_, err = app.urlModel.Get(shortCode)
 	if err == nil {
-		shortURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
+		shortURL := fmt.Sprintf("https://clck.dev/%s", shortCode)
 		obj := data.URL{
 			ShortUrl:  shortURL,
 			ShortCode: shortCode,
