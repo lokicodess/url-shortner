@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: web-app
-          image: lokesh3721/url-shortner-web:32
+          image: lokesh3721/url-shortner-web:37
           imagePullPolicy: Always
           ports:
             - containerPort: 80
