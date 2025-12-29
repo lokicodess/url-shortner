@@ -8,6 +8,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+    traefik.ingress.kubernetes.io/service.scheme: http
 spec:
   rules:
     - host: argocd.clck.dev
@@ -19,4 +20,5 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  number: 443
+                  number: 80
+
