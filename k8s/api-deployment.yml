@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: lokesh3721/url-shortner-api:37
+          image: lokesh3721/url-shortner-api:48
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
