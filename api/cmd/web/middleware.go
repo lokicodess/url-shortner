@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
 )
@@ -84,4 +86,26 @@ func (app app) enableCORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func instrumentHandler(path string, h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+			status:         http.StatusOK,
+		}
+
+		timer := prometheus.NewTimer(
+			httpRequestDuration.WithLabelValues(r.Method, path),
+		)
+		defer timer.ObserveDuration()
+
+		h(recorder, r)
+
+		httpRequestsTotal.WithLabelValues(
+			r.Method,
+			path,
+			fmt.Sprintf("%d", recorder.status),
+		).Inc()
+	}
 }
