@@ -33,7 +33,6 @@ docker-compose up -d
 
 - [📖 **Architecture Details**](docs/ARCHITECTURE.md) - System design, infrastructure decisions, and cost optimization
 - [🚀 **Deployment Guide**](docs/DEPLOYMENT.md) - Step-by-step setup and production deployment
-- [🔧 **API Documentation**](docs/API.md) - Complete API reference with examples
 - [⚙️ **Development Setup**](docs/DEVELOPMENT.md) - Local development environment and coding guidelines
 
 
