@@ -48,7 +48,8 @@ This is what's actually running right now on AWS.
 
 ### Future Architecture (When I Have Budget)
 
-![Optimized Architecture](future-architecture.png)
+<img width="780" height="691" alt="image" src="https://github.com/user-attachments/assets/13b21465-2642-489e-8150-284c4ac2f257" />
+
 
 This is what I'd build if I had ~$400-500/month to spend. Shows proper production setup.
 
