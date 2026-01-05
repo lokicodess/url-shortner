@@ -47,7 +47,7 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 8080, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "root:password@tcp(127.0.0.1:3306)/prod?parseTime=true", "MySQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "root:password@tcp(mysql:3306)/prod?parseTime=true", "MySQL DSN")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 10, "MySQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 5, "MySQL max idle connections")
 	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 5*time.Minute, "MySQL max idle connections time")

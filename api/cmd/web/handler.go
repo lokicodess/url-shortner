@@ -51,12 +51,16 @@ func (app app) GetUrl(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, actualURL, http.StatusPermanentRedirect)
 }
 
-func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
-	// limit size to prevent abuse
-	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+func (app *app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 
-	err := r.ParseMultipartForm(1024)
-	if err != nil {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -76,15 +80,15 @@ func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 
 	shortCode := app.generateShortCode(actualURL)
 
-	// If short code already exists → return the existing one
-	_, err = app.urlModel.Get(shortCode)
+	_, err := app.urlModel.Get(shortCode)
 	if err == nil {
 		shortURL := fmt.Sprintf("https://clck.dev/%s", shortCode)
-		obj := data.URL{
-			ShortUrl:  shortURL,
-			ShortCode: shortCode,
-		}
-		app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
+		app.writeJSON(w, http.StatusOK, data.Envelope{
+			"url": data.URL{
+				ShortUrl:  shortURL,
+				ShortCode: shortCode,
+			},
+		}, nil)
 		return
 	}
 
@@ -99,10 +103,10 @@ func (app app) HandleShorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURL := fmt.Sprintf("https://clck.dev/%s", shortCode)
-	obj := data.URL{
-		ShortUrl:  shortURL,
-		ShortCode: shortCode,
-	}
-
-	app.writeJSON(w, 200, data.Envelope{"url": obj}, nil)
+	app.writeJSON(w, http.StatusOK, data.Envelope{
+		"url": data.URL{
+			ShortUrl:  shortURL,
+			ShortCode: shortCode,
+		},
+	}, nil)
 }
