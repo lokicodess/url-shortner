@@ -25,9 +25,15 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/lokicodess/url-shortener.git
-cd url-shortener
+git clone https://github.com/lokicodess/url-shortner.git
+cd url-shortner
+cat > web/.env << EOF
+REACT_APP_API_URL=http://localhost:8080
+EOF
 docker-compose up -d
+curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+sudo mv migrate /usr/local/bin/
+migrate -path=./api/migrations -database="mysql://root:password@tcp(localhost:3306)/prod" up
 ```
 ## 📚 Documentation
 
