@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
@@ -60,7 +58,7 @@ func main() {
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	db, err := openDB(cfg)
+	 db, err := openDB(cfg)
 
 	if err != nil {
 		logger.Error(err.Error())
@@ -69,29 +67,17 @@ func main() {
 
 	logger.Info("database connection pool established")
 
-	defer db.Close()
+	defer db.Close() 
+
 	app := &app{
 		logger: logger,
 		config: cfg,
 		urlModel: model.UrlModel{
-			DB: db,
+			DB: db, 
 		},
 	}
-
-	srv := &http.Server{
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
-	}
-
-	logger.Info("starting server", "addr", cfg.port, "env", cfg.env)
-
-	err = srv.ListenAndServe()
-	if err != nil {
-		logger.Error(err.Error())
+	if err := app.serve(); err != nil {
+		app.logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
